@@ -1,4 +1,4 @@
-package com.artemistechnica.lib.persistence.postgresql
+package com.artemistechnica.lib.persistence.sql.postgresql
 
 import com.github.tminglei.slickpg.{ExPostgresProfile, PgPlayJsonSupport, utils}
 import play.api.libs.json.{JsNull, JsValue, Json}
@@ -23,7 +23,7 @@ trait PostgresApiProfile extends ExPostgresProfile with PgPlayJsonSupport{
 /**
  * Primary import object
  *
- * e.g. import com.artemistechnica.lib.persistence.postgresql.PostgresApiProfile.api._
+ * e.g. import com.artemistechnica.lib.persistence.sql.postgresql.PostgresApiProfile.api._
  */
 object PostgresApiProfile extends PostgresApiProfile
 
