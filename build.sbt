@@ -12,14 +12,14 @@ val settings = Seq(
     "-encoding", "UTF-8",
     "-feature",
     "-unchecked",
-    "-language-higherKinds",
-    "-language-implicitConversions",
+    // "-language-higherKinds",
+    // "-language-implicitConversions",
     "-Xfatal-warnings",
     "-Xlint",
-    "-Yno-adapted-args",
+    // "-Yno-adapted-args",
     "-Ywarn-dead-code",
     "-Ywarn-value-discard",
-    "-Ywarn-unused-import"
+    // "-Ywarn-unused-import"
   ),
 
   resolvers ++= Seq(
@@ -35,6 +35,7 @@ val settings = Seq(
     "com.github.tminglei" %%  "slick-pg_play-json"  % "0.18.0",
     "com.typesafe.akka"   %%  "akka-stream"         % "2.6.0",
     "org.postgresql"      %   "postgresql"          % "42.2.8",
+    "org.reactivemongo"   %%  "reactivemongo"       % "0.20.10",
     "org.scalatest"       %%  "scalatest"           % "3.0.8"   % Test
   )
 )
