@@ -12,14 +12,13 @@ val settings = Seq(
     "-encoding", "UTF-8",
     "-feature",
     "-unchecked",
-    // "-language-higherKinds",
-    // "-language-implicitConversions",
+    "-language:higherKinds",
+    "-language:implicitConversions",
     "-Xfatal-warnings",
-    "-Xlint",
-    // "-Yno-adapted-args",
+    "-Xlint:adapted-args",
+    "-Wunused:imports",
     "-Ywarn-dead-code",
     "-Ywarn-value-discard",
-    // "-Ywarn-unused-import"
   ),
 
   resolvers ++= Seq(
