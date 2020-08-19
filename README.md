@@ -101,7 +101,7 @@ val result1: PostgresResponse[Option[User]] = db.read[Option[User]]((t: Postgres
 
 
 ###### Configuration
-```json
+```hocon
 {
   db {
     postgres {
