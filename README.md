@@ -31,8 +31,19 @@ TODO
 
 ##### MongoDB
 
+MongoDB is fairly straight-forward to interface with.
+
 ###### Configuration
-TODO
+```hocon
+{
+  db {
+    mongo {
+      host = "localhost"
+      port = "27017"
+    }
+  }
+}
+```
 
 ##### MySQL
 
@@ -41,7 +52,7 @@ TODO
 
 ##### PostgreSQL
 
-The generalized steps to interface with a PostgreSQL DB is:
+The generalized steps to interface with a PostgreSQL DB are:
 1. Describe the tables available in the database using Slick.
 ```scala
 // Describing the user table

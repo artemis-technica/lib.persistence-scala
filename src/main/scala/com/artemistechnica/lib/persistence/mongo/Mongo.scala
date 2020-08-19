@@ -3,7 +3,7 @@ package com.artemistechnica.lib.persistence.mongo
 import com.artemistechnica.lib.persistence.config.ConfigHelper
 import com.artemistechnica.lib.persistence.mongo.MongoDatabaseOp.DBName
 import com.typesafe.config.{Config, ConfigFactory}
-import reactivemongo.api.{AsyncDriver, Cursor}
+import reactivemongo.api.{AsyncDriver, Cursor, DefaultDB}
 import reactivemongo.api.bson.{BSONArray, BSONDocument, BSONDocumentReader, BSONDocumentWriter, BSONValue}
 import reactivemongo.api.bson.collection.BSONCollection
 
@@ -30,6 +30,7 @@ object Mongo {
 trait MongoDatabaseOp {
   val dbName: DBName
   def query(collection: String)(implicit ec: ExecutionContext): Future[BSONCollection]
+  def database(implicit ec: ExecutionContext):Future[DefaultDB]
 }
 
 object MongoDatabaseOp {
@@ -83,6 +84,7 @@ trait MongoOp {
   implicit def toMongoDBOp(value: DBName): MongoDatabaseOp = new MongoDatabaseOp {
     override val dbName: DBName = value
     override def query(collection: String)(implicit ec: ExecutionContext): Future[BSONCollection] = Mongo.connection.flatMap(_.database(dbName).map(_.collection(collection)))
+    override def database(implicit ec: ExecutionContext): Future[DefaultDB] = Mongo.connection.flatMap(_.database(dbName))
   }
 }
 

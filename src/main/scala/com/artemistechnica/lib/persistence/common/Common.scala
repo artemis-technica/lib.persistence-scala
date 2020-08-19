@@ -1,8 +1,13 @@
 package com.artemistechnica.lib.persistence.common
 
 
+import java.sql.Timestamp
+
 import cats.data.EitherT
 import play.api.libs.json.{Format, JsValue, Json}
+import reactivemongo.api.bson.{BSONHandler, BSONLong, BSONValue}
+
+import scala.util.Try
 
 /**
  * Common response across all databases
@@ -16,7 +21,16 @@ object CommonResponse {
  */
 object TimestampImplicits {
 //  implicit val json = Json.format[Timestamp]
-//  implicit val bson = Macros.handler[Timestamp]
+
+  implicit val bson: BSONHandler[Timestamp] = new BSONHandler[Timestamp] {
+    override def writeTry(t: Timestamp): Try[BSONValue] = Try(BSONLong(t.getTime))
+    override def readTry(bson: BSONValue): Try[Timestamp] = {
+      for {
+        t0 <- bson.asTry[Long]
+        t1 <- Try(new Timestamp(t0))
+      } yield t1
+    }
+  }
 }
 
 /**
