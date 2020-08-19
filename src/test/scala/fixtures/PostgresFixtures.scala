@@ -15,6 +15,7 @@ import com.artemistechnica.lib.persistence.sql.postgresql.PostgresApiProfile.api
 trait PostgresTestDB extends PostgresRepo[PostgresTestDBTables] {
   override def tables: PostgresTestDBTables = PostgresTestDB.tables
   def createSchemas(implicit ec: ExecutionContext): PostgresResponse[Unit] = run(DBIO.seq(tables.asList.map(_.schema.createIfNotExists): _*))
+  def dropSchemas(implicit ec: ExecutionContext): PostgresResponse[Unit] = run(DBIO.seq(tables.asList.map(_.schema.dropIfExists): _*))
 }
 
 // The postgres table list required for the api
