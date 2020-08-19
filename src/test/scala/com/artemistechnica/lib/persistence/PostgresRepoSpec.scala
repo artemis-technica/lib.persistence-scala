@@ -71,9 +71,9 @@ class PostgresRepoSpec extends FlatSpec with Matchers with ScalaFutures with Bef
       r3 <- db.read[Option[User]](_.users.filter(_.id === user.id).result.headOption)
     } yield (r0, r1, r2, r3)
 
-    whenReady(resEF.value)( _ match {
+    whenReady(resEF.value)(_ match {
       case Left(e) => assert(false, s"Test error: ${e.message}")
-      case Right((i0, u0, i1, u1))  => {
+      case Right((i0, u0, i1, u1)) => {
         // Only a single row affected
         assert(i0 == 1)
         // User is defined
@@ -88,6 +88,32 @@ class PostgresRepoSpec extends FlatSpec with Matchers with ScalaFutures with Bef
         assert(u1.get.id === user.id)
         // Updated user has had its updateDate value updated as expected
         assert(u1.get.updateDate.after(u0.get.updateDate))
+      }
+    })
+  }
+
+  "User" should "delete as expected" in {
+    val user0 = UserFixture.generateUser()
+    val user1 = UserFixture.generateUser()
+
+    val resEF = for {
+      r0 <- db.write(_.users ++= List(user0, user1))
+      r1 <- db.read[Option[User]](_.users.filter(_.id === user0.id).result.headOption)
+      r2 <- db.delete(_.users.filter(_.id === user0.id))
+      r3 <- db.read[Option[User]](_.users.filter(_.id === user0.id).result.headOption)
+      r4 <- db.read[Option[User]](_.users.filter(_.id === user1.id).result.headOption)
+    } yield (r0, r1, r2, r3, r4)
+
+    whenReady(resEF.value)( _ match {
+      case Left(e)  => assert(false, s"Test error: ${e.message}")
+      case Right((i0, u0, i1, u1, u2)) => {
+        assert(i0.isDefined)
+        assert(i0.get == 2)
+        assert(u0.isDefined)
+        assert(i1 == 1)
+        assert(u1.isEmpty)
+        assert(u2.isDefined)
+        assert(u2.get.id === user1.id)
       }
     })
   }

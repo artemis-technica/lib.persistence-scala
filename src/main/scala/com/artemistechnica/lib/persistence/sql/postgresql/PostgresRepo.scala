@@ -2,7 +2,7 @@ package com.artemistechnica.lib.persistence.sql.postgresql
 
 import cats.data.EitherT
 import com.artemistechnica.lib.persistence.common.CommonResponse.RepoResponse
-import com.artemistechnica.lib.persistence.common.{ErrorCode, GeneralError, PostgresError, ReadError, RepoError, WriteError}
+import com.artemistechnica.lib.persistence.common.{DeleteError, ErrorCode, GeneralError, PostgresError, ReadError, RepoError, WriteError}
 import com.artemistechnica.lib.persistence.config.ConfigHelper
 import com.artemistechnica.lib.persistence.sql.common.{SqlRepo, SqlTableList}
 import com.artemistechnica.lib.persistence.sql.postgresql.PostgresRepo.PostgresResponse
@@ -12,6 +12,9 @@ import slick.dbio.{DBIOAction, Effect, NoStream, StreamingDBIO}
 import slick.sql.SqlAction
 
 import scala.concurrent.{ExecutionContext, Future}
+
+// The all important postgres api import
+import com.artemistechnica.lib.persistence.sql.postgresql.PostgresApiProfile.api._
 
 /**
  * Typed table list explicit for Postgres
@@ -24,7 +27,8 @@ trait PostgresTableList extends SqlTableList
  * a [[tables]] parameter.
  * @tparam A DB table descriptions to build a query against
  */
-trait PostgresRepo[A <: PostgresTableList] extends SqlRepo[A, PostgresResponse] {
+trait PostgresRepo[A <: PostgresTableList] extends SqlRepo[A, Table, PostgresResponse] {
+
   // Provides a database reference and error handling
   import PostgresRepo._
 
@@ -34,6 +38,7 @@ trait PostgresRepo[A <: PostgresTableList] extends SqlRepo[A, PostgresResponse] 
   override def read[T](query: A => SqlAction[T, NoStream, Effect.Read])(implicit ec: ExecutionContext): PostgresResponse[T] = (database.run(query(tables)), ReadError)
   override def write[T](query: A => SqlAction[T, NoStream, Effect.Write])(implicit ec: ExecutionContext): PostgresResponse[T] = (database.run(query(tables)), WriteError)
   override def stream[T](buffer: Boolean, query: A => StreamingDBIO[_, T])(implicit ec: ExecutionContext): DatabasePublisher[T] = database.stream(query(tables), buffer)
+  override def delete(query: A => Query[Table[_], _, Seq])(implicit ec: ExecutionContext): PostgresResponse[Int] = (database.run(query(tables).delete), DeleteError)
 }
 
 object PostgresRepo extends ConfigHelper {
