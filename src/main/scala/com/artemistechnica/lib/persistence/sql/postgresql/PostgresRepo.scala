@@ -58,7 +58,7 @@ object PostgresRepo extends ConfigHelper {
 }
 
 /**
- * Error handling for failed sql queries where an exception is thrown.
+ * Error handling for failed postgres queries where an exception is thrown.
  */
 object PostgresErrorHandler {
   def recoverPF[T, E <: RepoError](err: E): PartialFunction[Throwable, Either[PostgresError, T]] = {

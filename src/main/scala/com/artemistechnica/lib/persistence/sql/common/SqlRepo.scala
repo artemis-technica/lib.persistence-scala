@@ -2,11 +2,14 @@ package com.artemistechnica.lib.persistence.sql.common
 
 import slick.basic.DatabasePublisher
 import slick.dbio.{DBIOAction, Effect, NoStream, StreamingDBIO}
+import slick.lifted.TableQuery
 import slick.sql.SqlAction
 
 import scala.concurrent.ExecutionContext
 
-trait SqlTableList
+trait SqlTableList {
+  def asList: List[TableQuery[_]]
+}
 
 /**
  * Base SQL trait. This is compatible with SQL-based DBs
