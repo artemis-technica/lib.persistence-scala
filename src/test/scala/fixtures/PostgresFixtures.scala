@@ -39,6 +39,7 @@ object Column {
   val firstName   = "first_name"
   val lastName    = "last_name"
   val createDate  = "create_date"
+  val updateDate  = "update_date"
   val isbn        = "isbn"
   val title       = "title"
   val author      = "author"
@@ -55,10 +56,11 @@ object Table {
 class UserTable(tag: Tag) extends Table[User](tag, Table.user) {
   def id:         Rep[String]     = column[String](Column.id, O.PrimaryKey)
   def createDate: Rep[Timestamp]  = column[Timestamp](Column.createDate)
+  def updateDate: Rep[Timestamp]  = column[Timestamp](Column.updateDate)
   def firstName:  Rep[String]     = column[String](Column.firstName)
   def lastName:   Rep[String]     = column[String](Column.lastName)
 
-  override def * : ProvenShape[User] = (id, createDate, firstName, lastName).mapTo[User]
+  override def * : ProvenShape[User] = (id, createDate, updateDate, firstName, lastName).mapTo[User]
 }
 // Describing the book table
 class BookTable(tag: Tag) extends Table[Book](tag, Table.book) {

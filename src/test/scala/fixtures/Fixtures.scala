@@ -4,11 +4,12 @@ import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
-case class User(id: String, createDate: Timestamp, firstName: String, lastName: String)
+case class User(id: String, createDate: Timestamp, updateDate: Timestamp, firstName: String, lastName: String)
 object UserFixture {
   def generateUser() = {
     val id = UUID.randomUUID.toString
-    User(id, Timestamp.from(Instant.now()), s"FIRST_NAME_$id", s"LAST_NAME_$id")
+    val now = Timestamp.from(Instant.now())
+    User(id, now, now, s"FIRST_NAME_$id", s"LAST_NAME_$id")
   }
 }
 object UserImplicits {
