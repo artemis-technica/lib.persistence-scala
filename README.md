@@ -53,7 +53,11 @@ TODO
 ##### PostgreSQL
 
 The generalized steps to interface with a PostgreSQL DB are:
-1. Describe the tables available in the database using Slick.
+1. Describe the tables available in the database using Slick. Make sure to import the Postgres profile's api contents; this is typically the 'glue' to summon the right type aliases.
+```scala
+// The all important postgres api import
+import com.artemistechnica.lib.persistence.sql.postgresql.PostgresApiProfile.api._
+```
 ```scala
 // Describing the user table
 class UserTable(tag: Tag) extends Table[User](tag, Table.user) {
