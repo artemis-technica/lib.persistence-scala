@@ -97,22 +97,34 @@ class PostgresRepoSpec extends FlatSpec with Matchers with ScalaFutures with Bef
     val user1 = UserFixture.generateUser()
 
     val resEF = for {
+      // Write the users to the DB
       r0 <- db.write(_.users ++= List(user0, user1))
+      // Read back the first user
       r1 <- db.read[Option[User]](_.users.filter(_.id === user0.id).result.headOption)
+      // Delete the user by id
       r2 <- db.delete(_.users.filter(_.id === user0.id))
+      // Read back the first user after deleting
       r3 <- db.read[Option[User]](_.users.filter(_.id === user0.id).result.headOption)
+      // Read back the second user
       r4 <- db.read[Option[User]](_.users.filter(_.id === user1.id).result.headOption)
     } yield (r0, r1, r2, r3, r4)
 
     whenReady(resEF.value)( _ match {
       case Left(e)  => assert(false, s"Test error: ${e.message}")
       case Right((i0, u0, i1, u1, u2)) => {
+        // Assert the batched write count is defined
         assert(i0.isDefined)
+        // Assert the batched write count is the expected value
         assert(i0.get == 2)
+        // Assert the first query for the first user returns a defined user
         assert(u0.isDefined)
+        // Assert deleting the user returns the correct affected row count
         assert(i1 == 1)
+        // Assert the second query for the first user returns an empty result
         assert(u1.isEmpty)
+        // Assert querying for the second user returns a defined user
         assert(u2.isDefined)
+        // Assert the defined user is the expected second user
         assert(u2.get.id === user1.id)
       }
     })
