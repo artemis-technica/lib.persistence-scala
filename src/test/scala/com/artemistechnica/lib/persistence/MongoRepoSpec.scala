@@ -100,6 +100,38 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
     })
   }
 
+  "MongoRepo" should "delete many profiles as expected" in {
+    val profile0  = Profile("inactive")
+    val profile1  = Profile("inactive")
+    val query0    = BSONDocument("_id" -> profile0._id)
+    val query1    = BSONDocument("_id" -> profile1._id)
+    val delQuery  = BSONDocument("status" -> "inactive")
+    val result    = for {
+      bwr <- MongoDB.batchInsert("profile", List(profile0, profile1))
+      p0  <- MongoDB.readOne[Profile]("profile")(query0)
+      p1  <- MongoDB.readOne[Profile]("profile")(query1)
+      wr  <- MongoDB.deleteMany("profile")(delQuery)
+      p2  <- MongoDB.readOne[Profile]("profile")(query0)
+      p3  <- MongoDB.readOne[Profile]("profile")(query1)
+    } yield (bwr, p0, p1, wr, p2, p3)
+
+    whenReady(result.value)(_ match {
+      case Left(e)  => assert(false, s"Test failed: ${e.message}")
+      case Right((bwr, optP0, optP1, wr, optP2, optP3)) => {
+        assert(bwr.ok)
+        assert(bwr.totalN == 2)
+        assert(optP0.isDefined)
+        assert(optP0.get._id === profile0._id)
+        assert(optP1.isDefined)
+        assert(optP1.get._id === profile1._id)
+        assert(wr.ok)
+        assert(wr.n == 2)
+        assert(optP2.isEmpty)
+        assert(optP3.isEmpty)
+      }
+    })
+  }
+
   "MongoRepo" should "fail inserting the same document twice" in {
     val profile = Profile()
     val result = for {

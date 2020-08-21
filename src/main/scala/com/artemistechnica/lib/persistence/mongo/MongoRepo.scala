@@ -176,7 +176,22 @@ trait MongoRepo extends MongoResponseGen {
   def deleteOne(collectionName: String)(query: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[WriteResult] = {
     for {
       col <- collection(collectionName)
-      res <- (col.delete.one(query), DeleteError)
+      res <- (col.delete.one(query, limit = Some(1)), DeleteError)
+    } yield res
+  }
+
+  /**
+   *
+   * @param collectionName
+   * @param maxDeleteCount
+   * @param query
+   * @param ec
+   * @return
+   */
+  def deleteMany(collectionName: String, maxDeleteCount: Option[Int] = None)(query: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[WriteResult] = {
+    for {
+      col <- collection(collectionName)
+      res <- (col.delete(ordered = false).one(query, maxDeleteCount), DeleteError)
     } yield res
   }
 
