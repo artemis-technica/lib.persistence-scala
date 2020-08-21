@@ -47,8 +47,8 @@ trait MongoRepo extends MongoResponseGen {
 
   /**
    * Query a collection for a single document.
-   * @param collectionName The collection name query against. The collection will be automatically created if it does not exist.
-   * @param query The query to perform against the collection.
+   * @param collectionName The collection name to query against. The collection will be automatically created if it does not exist.
+   * @param query The query to perform against against the collection.
    * @param ec Implicitly scoped ExecutionContext
    * @param r Implicitly scoped document reader to materialize the response, T.
    * @tparam T The response type requested by the caller.
@@ -66,32 +66,33 @@ trait MongoRepo extends MongoResponseGen {
   }
 
   /**
-   *
-   * @param collectionName
-   * @param query
-   * @param maxDocs
-   * @param ec
-   * @param r
-   * @param cbf
-   * @tparam T
-   * @tparam K
-   * @return
+   * Query a collection for multiple documents
+   * @param collectionName The collection name to query against. The collection will be automatically created if it does not exist.
+   * @param query The query to perform against the collection.
+   * @param sort Optionally sort the results. By default no sorting happens.
+   * @param maxDocs Specify the maximum number of documents to return. Defaults to unlimited
+   * @param ec Implicitly scoped ExecutionContext
+   * @param r Implicitly scoped document reader to materialize typed results.
+   * @param cbf Implicitly scoped Factory for constructing K[T] typed results.
+   * @tparam T The document response type requested by the caller.
+   * @tparam K The container encapsulating any T results; e.g. List[T].
+   * @return MongoResponse[K[T]]
    */
-  def readMany[T, K[_]](collectionName: String)(query: BSONDocument, maxDocs: Int = -1)(implicit ec: ExecutionContext, r: BSONDocumentReader[T], cbf: Factory[T, K[T]]): MongoResponse[K[T]] = {
+  def readMany[T, K[_]](collectionName: String)(query: BSONDocument, sort: BSONDocument = BSONDocument.empty, maxDocs: Int = -1)(implicit ec: ExecutionContext, r: BSONDocumentReader[T], cbf: Factory[T, K[T]]): MongoResponse[K[T]] = {
     for {
       col <- collection(collectionName)
-      res <- (col.find[BSONDocument, BSONDocument](query).cursor[T]().collect[K](maxDocs, Cursor.FailOnError()), ReadError)
+      res <- (col.find[BSONDocument, BSONDocument](query).sort(sort).cursor[T]().collect[K](maxDocs, Cursor.FailOnError()), ReadError)
     } yield res
   }
 
   /**
-   *
-   * @param collectionName
-   * @param entity
-   * @param ec
-   * @param w
-   * @tparam T
-   * @return
+   * Insert a single document into a collection
+   * @param collectionName The collection to insert a document into. The collection will be automatically created if it does not exist.
+   * @param entity The entity to insert into the collection.
+   * @param ec Implicitly scoped ExecutionContext
+   * @param w Implicitly scoped document writer to create a BSONDocument from some T
+   * @tparam T The entity type written to the collection
+   * @return MongoResponse[WriteResult]
    */
   def insert[T](collectionName: String, entity: T)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[WriteResult] = {
     for {
@@ -101,14 +102,14 @@ trait MongoRepo extends MongoResponseGen {
   }
 
   /**
-   *
-   * @param collectionName
-   * @param entities
-   * @param orderedInserts
-   * @param ec
-   * @param w
-   * @tparam T
-   * @return
+   * Insert multiple documents into a collection. This can be done sequentially or as an unordered operations.
+   * @param collectionName The collection to insert the documents into.
+   * @param entities The entities to insert into the collection
+   * @param orderedInserts Boolean flag indicating if the operation should be sequential or unordered
+   * @param ec Implicitly scoped ExecutionContext
+   * @param w Implicitly scoped document writer to create a BSONDocument from some T
+   * @tparam T The entity type written to the collection
+   * @return MongoResponse[MultiBulkWriteResult]
    */
   def batchInsert[T](collectionName: String, entities: Iterable[T], orderedInserts: Boolean = false)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[MultiBulkWriteResult] = {
     for {

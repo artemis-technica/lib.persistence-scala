@@ -1,5 +1,6 @@
 package com.artemistechnica.lib.persistence
 
+import com.artemistechnica.lib.persistence.common.WriteError
 import com.artemistechnica.lib.persistence.mongo.Mongo
 import fixtures.{MongoDB, Profile}
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
@@ -26,7 +27,7 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
 
   "MongoRepo" should "persist a single profile" in {
     val profile = Profile()
-    val query   = BSONDocument("id" -> profile.id)
+    val query   = BSONDocument("_id" -> profile._id)
     val result  = for {
       wr  <- MongoDB.insert("profile", profile)
       p   <- MongoDB.readOne[Profile]("profile")(query)
@@ -37,14 +38,14 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
       case Right((wr, optProfile)) => {
         assert(wr.ok)
         assert(optProfile.isDefined)
-        assert(optProfile.get.id === profile.id)
+        assert(optProfile.get._id === profile._id)
       }
     })
   }
 
   "MongoRepo" should "update only a profile's updateDate" in {
     val profile     = Profile()
-    val query       = BSONDocument("id" -> profile.id)
+    val query       = BSONDocument("_id" -> profile._id)
     val updateDate  = 1583884800000L
     val update      = BSONDocument("$set" -> BSONDocument("updateDate" -> updateDate))
     val result      = for {
@@ -59,12 +60,12 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
       case Right((wr0, optP0, uwr, optP1)) => {
         assert(wr0.ok)
         assert(optP0.isDefined)
-        assert(optP0.get.id === profile.id)
+        assert(optP0.get._id === profile._id)
         assert(optP0.get.updateDate == profile.updateDate)
         assert(uwr.ok)
         assert(uwr.nModified == 1)
         assert(optP1.isDefined)
-        assert(optP1.get.id === profile.id)
+        assert(optP1.get._id === profile._id)
         assert(optP1.get.updateDate == updateDate)
       }
     })
@@ -73,8 +74,8 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
   "MongoRepo" should "delete one profile as expected" in {
     val profile0  = Profile()
     val profile1  = Profile()
-    val query0    = BSONDocument("id" -> profile0.id)
-    val query1    = BSONDocument("id" -> profile1.id)
+    val query0    = BSONDocument("_id" -> profile0._id)
+    val query1    = BSONDocument("_id" -> profile1._id)
     val result    = for {
       bwr <- MongoDB.batchInsert("profile", List(profile0, profile1))
       p0  <- MongoDB.readOne[Profile]("profile")(query0)
@@ -89,13 +90,31 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
         assert(bwr.ok)
         assert(bwr.totalN == 2)
         assert(optP0.isDefined)
-        assert(optP0.get.id === profile0.id)
+        assert(optP0.get._id === profile0._id)
         assert(wr.ok)
         assert(wr.n == 1)
         assert(optP1.isEmpty)
         assert(optP2.isDefined)
-        assert(optP2.get.id === profile1.id)
+        assert(optP2.get._id === profile1._id)
       }
+    })
+  }
+
+  "MongoRepo" should "fail inserting the same document twice" in {
+    val profile = Profile()
+    val result = for {
+      wr0 <- MongoDB.insert("profile", profile)
+      wr1 <- MongoDB.insert("profile", profile)
+    } yield (wr0, wr1)
+
+    whenReady(result.value)(_ match {
+      case Left(e)  => {
+        // Assert duplicate insert results in a WriteError
+        assert(e.code == WriteError.code)
+        // Should contain duplicate error code
+        assert(e.message.contains("E11000"))
+      }
+      case Right((wr0, wr1))  => assert(false, "Test failed: unexpected outcome. Able to write duplicate documents to collection")
     })
   }
 }
