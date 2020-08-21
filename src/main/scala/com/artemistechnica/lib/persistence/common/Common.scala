@@ -16,6 +16,10 @@ object CommonResponse {
   type RepoResponse[F[_], E <: RepoError, A] = EitherT[F, E, A]
 }
 
+//trait RepoResponseGen {
+//  implicit def toRepoResponse[T, E <: RepoError, F[_] <: RepoResponse[Future, E, T]](tx: (Future[T], E))(implicit ec: ExecutionContext): F[T] = EitherT(tx._1.map(Right(_)).recover(recoverPF(tx._2)))
+//}
+
 /**
  * Import when needing to work with json or bson representations of a [[java.sql.Timestamp]]
  */

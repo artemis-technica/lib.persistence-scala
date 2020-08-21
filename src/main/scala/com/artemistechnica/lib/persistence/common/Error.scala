@@ -13,6 +13,7 @@ object ErrorCode {
   val writeError    = 20
   val deleteError   = 30
   val generalError  = 40
+  val databaseError = 50
   val unknownError  = 0
 }
 
@@ -34,4 +35,9 @@ case object DeleteError extends RepoError {
 case object GeneralError extends RepoError {
   override def message: String = "General error"
   override def code: Int = ErrorCode.generalError
+}
+
+case object DatabaseError extends RepoError {
+  override def message: String = "Database error"
+  override def code: Int = ErrorCode.databaseError
 }

@@ -40,6 +40,7 @@ MongoDB is fairly straight-forward to interface with.
     mongo {
       host = "localhost"
       port = "27017"
+      dbName = "testdb"
     }
   }
 }
