@@ -18,15 +18,7 @@ import scala.collection.Factory
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Primary trait to interface with MongoDB. [[MongoOp]] gives an easy interface for executing queries against
- * a Mongo database. [[MongoQueryHelper]] gives access to a simple query DSL.
- *
- * Example:
- * val dbName   = "some_database_name"
- * val colName  = "someCollectionName"
- *
- * dbName.query(colName).readOne[A](where("_id") is id)
- * dbName.query(colName).saveWhere[A](p, where("_id") is p.id)
+ * Primary trait to interface with a Mongo database.
  */
 trait MongoRepo extends MongoResponseGen {
 
@@ -119,7 +111,8 @@ trait MongoRepo extends MongoResponseGen {
   }
 
   /**
-   *
+   * Allow an update statement to affect only the _first_ document matching the provided query. If no document matches the
+   * provided query then a new document will be inserted.
    * @param collectionName
    * @param entity
    * @param query
@@ -136,7 +129,8 @@ trait MongoRepo extends MongoResponseGen {
   }
 
   /**
-   *
+   * Allow an update statement to affect only the _first_ document matching the provided query. This is strictly an update
+   * and will not insert new documents.
    * @param collectionName
    * @param query
    * @param updateStatement
@@ -151,7 +145,7 @@ trait MongoRepo extends MongoResponseGen {
   }
 
   /**
-   *
+   * Allow and update statement to affect _all_ documents matching the provided query.
    * @param collectionName
    * @param ordered
    * @param query
@@ -167,7 +161,7 @@ trait MongoRepo extends MongoResponseGen {
   }
 
   /**
-   *
+   * Delete the first matching document to the provided query. Even if the query matches against many documents, only the first match will be deleted.
    * @param collectionName
    * @param query
    * @param ec
@@ -181,7 +175,8 @@ trait MongoRepo extends MongoResponseGen {
   }
 
   /**
-   *
+   * Allow a delete command to possibly delete up to a certain number of documents matching the provided query. By default
+   * this does not set a limit and will delete _all_ documents matching the provided query.
    * @param collectionName
    * @param maxDeleteCount
    * @param query
@@ -195,6 +190,15 @@ trait MongoRepo extends MongoResponseGen {
     } yield res
   }
 
+  /**
+   * Batch execution of many distinct delete commands.
+   * @param collectionName
+   * @param ordered
+   * @param maxDeleteCount
+   * @param queries
+   * @param ec
+   * @return
+   */
   def deleteManyDistinct(collectionName: String, ordered: Boolean = false, maxDeleteCount: Option[Int] = None)(queries: Seq[BSONDocument])(implicit ec: ExecutionContext): MongoResponse[MultiBulkWriteResult] = {
     for {
       col <- collection(collectionName)
@@ -203,7 +207,7 @@ trait MongoRepo extends MongoResponseGen {
         val builder = col.delete(ordered)
         // Create the commands the builder will execute
         val deletes = Future.sequence(queries.map(q => builder.element(q, maxDeleteCount)))
-        // Execute each command
+        // Execute each command. Tuple[T, RepoError] is implicitly converted to a MongoResponse[T]
         (deletes.flatMap(builder.many(_)), DeleteError)
       }
     } yield res
