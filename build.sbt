@@ -35,7 +35,8 @@ val settings = Seq(
     "com.typesafe.akka"   %%  "akka-stream"         % "2.6.0",
     "org.postgresql"      %   "postgresql"          % "42.2.8",
     "org.reactivemongo"   %%  "reactivemongo"       % "0.20.11",
-    "org.scalatest"       %%  "scalatest"           % "3.0.8"   % Test
+    "net.debasishg"       %%  "redisclient"         % "3.30",
+    "org.scalatest"       %%  "scalatest"           % "3.0.8"     % Test
   )
 )
 

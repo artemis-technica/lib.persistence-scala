@@ -2,14 +2,14 @@ package com.artemistechnica.lib.persistence.mongo
 
 import cats.data.EitherT
 import com.artemistechnica.lib.persistence.common.CommonResponse.RepoResponse
-import com.artemistechnica.lib.persistence.common.{DatabaseError, ErrorCode, MongoError, ReadError, RepoError, WriteError}
+import com.artemistechnica.lib.persistence.common.{DatabaseError, ErrorCode, MongoError, ReadError, RepoError, UpdateError, WriteError}
 import com.artemistechnica.lib.persistence.config.ConfigHelper
 import com.artemistechnica.lib.persistence.mongo.MongoRepo.MongoResponse
 import com.typesafe.config.{Config, ConfigFactory}
 import reactivemongo.api.{AsyncDriver, Cursor, DefaultDB}
 import reactivemongo.api.bson.{BSONArray, BSONDocument, BSONDocumentReader, BSONDocumentWriter, BSONValue}
 import reactivemongo.api.bson.collection.BSONCollection
-import reactivemongo.api.commands.{MultiBulkWriteResult, WriteResult}
+import reactivemongo.api.commands.{MultiBulkWriteResult, UpdateWriteResult, WriteResult}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -47,20 +47,37 @@ trait MongoRepo extends MongoResponseGen {
       res <- (col.find[BSONDocument, BSONDocument](query).cursor[T]().collect[List](maxDocs, Cursor.FailOnError()), ReadError)
     } yield res
   }
-  def insert[T](collection: String, entity: T)(implicit ec: ExecutionContext, r: BSONDocumentWriter[T]): MongoResponse[WriteResult] = {
+  def insert[T](collection: String, entity: T)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[WriteResult] = {
     for {
       col <- getCollection(collection)
       res <- (col.insert(false).one[T](entity), WriteError)
     } yield res
   }
-  def batchInsert[T](collection: String, entities: Iterable[T], orderedInserts: Boolean = false)(implicit ec: ExecutionContext, r: BSONDocumentWriter[T]): MongoResponse[MultiBulkWriteResult] = {
+  def batchInsert[T](collection: String, entities: Iterable[T], orderedInserts: Boolean = false)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[MultiBulkWriteResult] = {
     for {
       col <- getCollection(collection)
       res <- (col.insert(orderedInserts).many[T](entities), WriteError)
     } yield res
   }
+  def upsert[T](collection: String, entity: T)(query: BSONDocument)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[Option[T]] = {
+    for {
+      col <- getCollection(collection)
+      res <- (col.update(false).one(query, entity, true, false), UpdateError)
+    } yield res
+  }
+  def updateOne(collection: String)(query: BSONDocument, updateStatement: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[UpdateWriteResult] = {
+    for {
+      col <- getCollection(collection)
+      res <- (col.update(false).one(query, updateStatement, false, false), UpdateError)
+    } yield res
+  }
+  def updateMany(collection: String, ordered: Boolean = false)(query: BSONDocument, updateStatement: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[UpdateWriteResult] = {
+    for {
+      col <- getCollection(collection)
+      res <- (col.update(ordered).one(query, updateStatement, false, true), UpdateError)
+    } yield res
+  }
   // TODO - Implement me!
-//  def upsert[T](collection: String, entity: T)(implicit ec: ExecutionContext, r: BSONDocumentReader[T]): MongoResponse[Option[T]]
 //  def deleteOne(collection: String)(query: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[Unit]
 //  def deleteMany(collection: String)(query: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[Int]
 //  def stream[T](collection: String)(implicit ec: ExecutionContext, r: BSONDocumentReader[T]): MongoResponse[Option[T]]

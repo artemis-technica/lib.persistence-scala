@@ -11,9 +11,10 @@ case class MongoError(message: String, code: Int) extends RepoError
 object ErrorCode {
   val readError     = 10
   val writeError    = 20
-  val deleteError   = 30
-  val generalError  = 40
-  val databaseError = 50
+  val updateError   = 30
+  val deleteError   = 40
+  val generalError  = 50
+  val databaseError = 60
   val unknownError  = 0
 }
 
@@ -25,6 +26,11 @@ case object ReadError extends RepoError {
 case object WriteError extends RepoError {
   override def message: String = "Write error"
   override def code: Int = ErrorCode.writeError
+}
+
+case object UpdateError extends RepoError {
+  override def message: String = "Update error"
+  override def code: Int = ErrorCode.updateError
 }
 
 case object DeleteError extends RepoError {
