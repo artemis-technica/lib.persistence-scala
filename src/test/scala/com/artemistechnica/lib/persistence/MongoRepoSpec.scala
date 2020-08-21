@@ -160,13 +160,6 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
 
   "MongoRepo" should "stream documents" in {
     val profiles = (1 to 25).map(_ => Profile())
-
-    val result3: MongoResponse[Seq[Profile]] = for {
-      src <- MongoDB.stream[Profile] ("profile")(BSONDocument.empty)
-      res <- (src.runWith(Sink.seq), StreamError)
-    } yield res
-
-
     val results = for {
       _           <- MongoDB.deleteMany("profile")(BSONDocument.empty) // Clearing the collection
       _           <- MongoDB.batchInsert("profile", profiles)
