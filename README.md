@@ -9,6 +9,7 @@ A scala persistence library.
 * MongoDB
 * MySQL
 * PostgreSQL
+* Redis
 
 ### Table of Contents
 * Quickstart
@@ -20,18 +21,45 @@ A scala persistence library.
   * Configuration
 * PostgreSQL
   * Configuration
+* Redis
 
 
 ##### Quickstart
 
+All repositories return a common `RepoResponse` response which is really a type alias for an `EitherT[F[_], E <: RepoError, A]`.
+
 ###### Installation
-TODO
+Add the following dependency to your `libraryDependencies` in `build.sbt`.
+
+`"com.artemistechnica"  %%  "lib-persistence-scala"  %  "0.0.1"`
+
 ###### Components
 TODO
 
 ##### MongoDB
 
 MongoDB is fairly straight-forward to interface with.
+
+1. Extends the `com.artemistechnica.lib.persistence.mongo.MongoRepo` trait. This gives basic functionality for interacting with Mongo database. This will automatically find the `application.conf` on the classpath and interpret its contents.
+```scala
+// Just extend the MongoRepo trait
+object MongoDB extends MongoRepo
+// Simple example data
+case class Profile(id: String, createDate: Long, updateDate: Long)
+object Profile {
+  // Implicit bson handler for reading and writing types to a Mongo database.
+  implicit val bson: BSONDocumentHandler[Profile] = Macros.handler[Profile]
+  def apply(): Profile = {
+    val now = System.currentTimeMillis
+    Profile(UUID.randomUUID.toString, now, now)
+  }
+}
+
+val collection = "profile"
+val result0: MongoResponse[WriteResult] = MongoDB.insert(collection, profile)
+val result1: MongoResponse[Option[Profile]] = MongoDB.readOne[Profile]("profile")(BSONDocument("id" -> profile.id))
+val result2: MongoResponse[List[Profile]] = MongoDB.readMany[Profile](collection)(BSONDocument("status" -> "active"))
+```
 
 ###### Configuration
 ```hocon

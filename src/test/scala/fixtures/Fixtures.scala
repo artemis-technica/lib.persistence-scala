@@ -24,7 +24,6 @@ case class Profile(id: String, createDate: Long, updateDate: Long)
 object Profile {
   implicit val json: OFormat[Profile] = Json.format[Profile]
   implicit val bson: BSONDocumentHandler[Profile] = Macros.handler[Profile]
-
   def apply(): Profile = {
     val now = System.currentTimeMillis
     Profile(UUID.randomUUID.toString, now, now)
