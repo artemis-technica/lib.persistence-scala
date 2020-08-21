@@ -64,7 +64,7 @@ val result2: MongoResponse[List[Profile]] = MongoDB.readMany[Profile](collection
 
 // Akka streams support
 val result3: MongoResponse[Seq[Profile]] = for {
-  src <- MongoDB.stream[Profile] ("profile")(BSONDocument.empty)
+  src <- MongoDB.stream[Profile]("profile")(BSONDocument.empty)
   res <- (src.runWith(Sink.seq), StreamError)
 } yield res
 ```
