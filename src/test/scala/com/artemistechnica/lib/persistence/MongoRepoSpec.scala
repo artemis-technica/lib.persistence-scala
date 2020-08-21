@@ -3,7 +3,6 @@ package com.artemistechnica.lib.persistence
 import akka.stream.scaladsl.Sink
 import akka.stream.{ActorMaterializer, Materializer}
 import com.artemistechnica.lib.persistence.common.{StreamError, WriteError}
-import com.artemistechnica.lib.persistence.mongo.MongoRepo.MongoResponse
 import com.artemistechnica.lib.persistence.mongo.{Mongo, MongoResponseGen}
 import fixtures.{MongoDB, Profile}
 import org.scalatest.concurrent.ScalaFutures

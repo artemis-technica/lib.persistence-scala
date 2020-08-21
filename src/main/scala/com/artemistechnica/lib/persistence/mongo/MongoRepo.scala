@@ -214,7 +214,7 @@ trait MongoRepo extends MongoResponseGen {
   }
 
   /**
-   *
+   * Stream data from the database.
    * @param collectionName
    * @param query
    * @param maxDocs
@@ -243,6 +243,7 @@ object Mongo extends MongoResponseGen {
   def db(implicit ec: ExecutionContext): MongoResponse[DefaultDB] = (conn.flatMap(_.database(MongoConfig.instance.dbName)), DatabaseError)
 }
 
+// Extends the trait or import the companion object's contents for implicit Tuple[T, ResponseError] to MongoResponse[T] transformations
 trait MongoResponseGen {
   import MongoErrorHandler._
   implicit def asFuture[T](t: T): Future[T] = Future.successful(t)
@@ -252,10 +253,9 @@ trait MongoResponseGen {
     def toResponse(implicit ec: ExecutionContext): MongoResponse[T] = toRepoResponse(tx)
   }
 }
+object MongoResponseGen extends MongoResponseGen
 
-/**
- * Error handling for failed mongo queries where an exception is thrown.
- */
+// Error handling for failed mongo queries where an exception is thrown.
 object MongoErrorHandler {
   def recoverPF[T, E <: RepoError](err: E): PartialFunction[Throwable, Either[MongoError, T]] = {
     case t: Throwable => Left(MongoError(t.getMessage, err.code))
@@ -263,8 +263,8 @@ object MongoErrorHandler {
   }
 }
 
+// TODO - Expand
 case class MongoConfig(host: String, port: Int, dbName: String)
-
 object MongoConfig extends ConfigHelper {
 
   // Singleton app configuration instance
