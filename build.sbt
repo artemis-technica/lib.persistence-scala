@@ -3,7 +3,7 @@ val projectName = "lib-persistence-scala"
 val settings = Seq(
   organization  := "com.artemistechnica",
   name          := projectName,
-  version       := "0.1.0",
+  version       := "0.1.0-SNAPSHOT",
   description   := "Database shim.",
   scalaVersion  := "2.13.3",
 
