@@ -13,8 +13,9 @@ object ErrorCode {
   val writeError    = 20
   val updateError   = 30
   val deleteError   = 40
-  val generalError  = 50
-  val databaseError = 60
+  val streamError   = 50
+  val generalError  = 60
+  val databaseError = 70
   val unknownError  = 0
 }
 
@@ -46,4 +47,9 @@ case object GeneralError extends RepoError {
 case object DatabaseError extends RepoError {
   override def message: String = "Database error"
   override def code: Int = ErrorCode.databaseError
+}
+
+case object StreamError extends RepoError {
+  override def message: String = "Database streaming error"
+  override def code: Int = ErrorCode.streamError
 }

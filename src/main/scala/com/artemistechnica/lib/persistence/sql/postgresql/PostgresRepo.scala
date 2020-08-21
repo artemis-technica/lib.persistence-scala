@@ -2,7 +2,7 @@ package com.artemistechnica.lib.persistence.sql.postgresql
 
 import cats.data.EitherT
 import com.artemistechnica.lib.persistence.common.CommonResponse.RepoResponse
-import com.artemistechnica.lib.persistence.common.{DeleteError, ErrorCode, GeneralError, PostgresError, ReadError, RepoError, WriteError}
+import com.artemistechnica.lib.persistence.common._
 import com.artemistechnica.lib.persistence.config.ConfigHelper
 import com.artemistechnica.lib.persistence.sql.common.{SqlRepo, SqlTableList}
 import com.artemistechnica.lib.persistence.sql.postgresql.PostgresRepo.PostgresResponse
@@ -43,8 +43,8 @@ trait PostgresRepo[A <: PostgresTableList] extends SqlRepo[A, Table, PostgresRes
 
 object PostgresRepo extends ConfigHelper {
 
-  import PostgresErrorHandler._
   import PostgresApiProfile.api._
+  import PostgresErrorHandler._
 
   type PostgresResponse[T] = RepoResponse[Future, PostgresError, T]
 

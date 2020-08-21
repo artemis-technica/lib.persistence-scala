@@ -1,28 +1,36 @@
 package com.artemistechnica.lib.persistence
 
-import com.artemistechnica.lib.persistence.common.WriteError
-import com.artemistechnica.lib.persistence.mongo.Mongo
+import akka.stream.scaladsl.Sink
+import akka.stream.{ActorMaterializer, Materializer}
+import com.artemistechnica.lib.persistence.common.{StreamError, WriteError}
+import com.artemistechnica.lib.persistence.mongo.MongoRepo.MongoResponse
+import com.artemistechnica.lib.persistence.mongo.{Mongo, MongoResponseGen}
 import fixtures.{MongoDB, Profile}
-import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import reactivemongo.api.bson.BSONDocument
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with BeforeAndAfterAll {
+class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with BeforeAndAfterAll with MongoResponseGen {
 
   import cats.implicits.catsStdInstancesForFuture
 
   // Global future timeout
   implicit override val patienceConfig = PatienceConfig(timeout = Span(2, Seconds), interval = Span(20, Millis))
+  // Akka stream materializer
+  // TODO - upgrade to 2.6.x
+  implicit val system = akka.actor.ActorSystem("TheSystem")
+  implicit val mat: Materializer = ActorMaterializer()
+
 
   override protected def beforeAll(): Unit = {
-    whenReady(Mongo.db.map(_.drop()).value)(_ => println("Mongo database dropped"))
+    whenReady(Mongo.db.map(_.drop()).value)(_ => ())
   }
 
   override protected def afterAll(): Unit = {
-    whenReady(Mongo.db.map(_.drop()).value)(_ => println("Mongo database dropped"))
+    whenReady(Mongo.db.map(_.drop()).value)(_ => ())
   }
 
   "MongoRepo" should "persist a single profile" in {
@@ -146,7 +154,37 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
         // Should contain duplicate error code
         assert(e.message.contains("E11000"))
       }
-      case Right((wr0, wr1))  => assert(false, "Test failed: unexpected outcome. Able to write duplicate documents to collection")
+      case Right((_, _))  => assert(false, "Test failed: unexpected outcome. Able to write duplicate documents to collection")
     })
+  }
+
+  "MongoRepo" should "stream documents" in {
+    val profiles = (1 to 25).map(_ => Profile())
+
+    val result3: MongoResponse[Seq[Profile]] = for {
+      src <- MongoDB.stream[Profile] ("profile")(BSONDocument.empty)
+      res <- (src.runWith(Sink.seq), StreamError)
+    } yield res
+
+
+    val results = for {
+      _           <- MongoDB.deleteMany("profile")(BSONDocument.empty) // Clearing the collection
+      _           <- MongoDB.batchInsert("profile", profiles)
+      stream0     <- MongoDB.stream[Profile]("profile")(BSONDocument.empty)
+      collection0 <- (stream0.runWith(Sink.seq), StreamError) // Implicitly transformed to a MongoResponse[Seq[Profile]]
+      _           <- MongoDB.deleteManyDistinct("profile")(profiles.map(p => BSONDocument("_id" -> p._id)))
+      stream1     <- MongoDB.stream[Profile]("profile")(BSONDocument.empty)
+      collection1 <- (stream1.runWith(Sink.seq), StreamError) // Implicitly transformed to a MongoResponse[Seq[Profile]]
+    } yield (collection0, collection1)
+
+    whenReady(results.value)(_ match {
+      case Left(e)  => assert(false, s"Test failed: Unexpected stream error. ${e.message}")
+      case Right((psx0, psx1)) => {
+        assert(psx0.length == profiles.length)
+        assert(psx0.distinctBy(_._id).length == profiles.length)
+        assert(psx1.isEmpty)
+      }
+    })
+
   }
 }

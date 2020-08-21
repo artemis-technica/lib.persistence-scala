@@ -3,11 +3,11 @@ package com.artemistechnica.lib.persistence
 import java.sql.Timestamp
 import java.time.Instant
 
+import cats.implicits.catsStdInstancesForFuture
 import fixtures.{PostgresTestDB, User, UserFixture}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
-import cats.implicits.catsStdInstancesForFuture
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

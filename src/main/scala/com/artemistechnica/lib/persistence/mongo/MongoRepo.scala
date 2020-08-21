@@ -4,15 +4,15 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import cats.data.EitherT
 import com.artemistechnica.lib.persistence.common.CommonResponse.RepoResponse
-import com.artemistechnica.lib.persistence.common.{DatabaseError, DeleteError, ErrorCode, MongoError, ReadError, RepoError, UpdateError, WriteError}
+import com.artemistechnica.lib.persistence.common._
 import com.artemistechnica.lib.persistence.config.ConfigHelper
 import com.artemistechnica.lib.persistence.mongo.MongoRepo.MongoResponse
 import com.typesafe.config.{Config, ConfigFactory}
 import reactivemongo.akkastream.State
-import reactivemongo.api.{AsyncDriver, Cursor, DefaultDB}
-import reactivemongo.api.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import reactivemongo.api.bson.collection.BSONCollection
+import reactivemongo.api.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import reactivemongo.api.commands.{MultiBulkWriteResult, UpdateWriteResult, WriteResult}
+import reactivemongo.api.{AsyncDriver, Cursor, DefaultDB}
 
 import scala.collection.Factory
 import scala.concurrent.{ExecutionContext, Future}
@@ -192,6 +192,20 @@ trait MongoRepo extends MongoResponseGen {
     for {
       col <- collection(collectionName)
       res <- (col.delete(ordered = false).one(query, maxDeleteCount), DeleteError)
+    } yield res
+  }
+
+  def deleteManyDistinct(collectionName: String, ordered: Boolean = false, maxDeleteCount: Option[Int] = None)(queries: Seq[BSONDocument])(implicit ec: ExecutionContext): MongoResponse[MultiBulkWriteResult] = {
+    for {
+      col <- collection(collectionName)
+      res <- {
+        // Create the builder
+        val builder = col.delete(ordered)
+        // Create the commands the builder will execute
+        val deletes = Future.sequence(queries.map(q => builder.element(q, maxDeleteCount)))
+        // Execute each command
+        (deletes.flatMap(builder.many(_)), DeleteError)
+      }
     } yield res
   }
 

@@ -61,6 +61,12 @@ val collection = "profile"
 val result0: MongoResponse[WriteResult] = MongoDB.insert(collection, profile)
 val result1: MongoResponse[Option[Profile]] = MongoDB.readOne[Profile]("profile")(BSONDocument("id" -> profile.id))
 val result2: MongoResponse[List[Profile]] = MongoDB.readMany[Profile](collection)(BSONDocument("status" -> "active"))
+
+// Akka streams support
+val result3: MongoResponse[Seq[Profile]] = for {
+  src <- MongoDB.stream[Profile] ("profile")(BSONDocument.empty)
+  res <- (src.runWith(Sink.seq), StreamError)
+} yield res
 ```
 
 ###### Configuration
