@@ -31,7 +31,9 @@ All repositories return a common `RepoResponse` response which is really a type 
 ###### Installation
 Add the following dependency to your `libraryDependencies` in `build.sbt`.
 
-`"com.artemistechnica"  %%  "lib-persistence-scala"  %  "0.0.1"`
+```scala
+"com.artemistechnica"  %%  "lib-persistence-scala"  %  "0.0.1"
+```
 
 ###### Components
 TODO
@@ -75,6 +77,8 @@ val result2: MongoResponse[List[Profile]] = MongoDB.readMany[Profile](collection
 ```
 
 ##### MySQL
+
+MySQL and Postgres are both integrated in very similar fashions.
 
 ###### Configuration
 TODO
