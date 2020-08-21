@@ -47,13 +47,13 @@ MongoDB is fairly straight-forward to interface with.
 // Just extend the MongoRepo trait
 object MongoDB extends MongoRepo
 // Simple example data
-case class Profile(id: String, createDate: Long, updateDate: Long)
+case class Profile(id: String, createDate: Long, updateDate: Long, status: String)
 object Profile {
   // Implicit bson handler for reading and writing types to a Mongo database.
   implicit val bson: BSONDocumentHandler[Profile] = Macros.handler[Profile]
   def apply(): Profile = {
     val now = System.currentTimeMillis
-    Profile(UUID.randomUUID.toString, now, now)
+    Profile(UUID.randomUUID.toString, now, now, "active")
   }
 }
 
