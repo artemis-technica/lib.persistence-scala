@@ -43,7 +43,31 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
   }
 
   "Profile" should "update only its updateDate" in {
+    val profile     = Profile()
+    val query       = BSONDocument("id" -> profile.id)
+    val updateDate  = 1583884800000L
+    val update      = BSONDocument("$set" -> BSONDocument("updateDate" -> updateDate))
+    val result      = for {
+      wr0 <- MongoDB.insert("profile", profile)
+      p0  <- MongoDB.readOne[Profile]("profile")(query)
+      uwr <- MongoDB.updateOne("profile")(query, update)
+      p1  <- MongoDB.readOne[Profile]("profile")(query)
+    } yield (wr0, p0, uwr, p1)
 
+    whenReady(result.value)(_ match {
+      case Left(e)  => assert(false, s"Test failed: ${e.message}")
+      case Right((wr0, optP0, uwr, optP1)) => {
+        assert(wr0.ok)
+        assert(optP0.isDefined)
+        assert(optP0.get.id === profile.id)
+        assert(optP0.get.updateDate == profile.updateDate)
+        assert(uwr.ok)
+        assert(uwr.nModified == 1)
+        assert(optP1.isDefined)
+        assert(optP1.get.id === profile.id)
+        assert(optP1.get.updateDate == updateDate)
+      }
+    })
   }
 
   "Profile" should "delete as expected" in {

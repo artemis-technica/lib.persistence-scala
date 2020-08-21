@@ -1,13 +1,16 @@
 package com.artemistechnica.lib.persistence.mongo
 
+import akka.stream.Materializer
+import akka.stream.scaladsl.Source
 import cats.data.EitherT
 import com.artemistechnica.lib.persistence.common.CommonResponse.RepoResponse
-import com.artemistechnica.lib.persistence.common.{DatabaseError, ErrorCode, MongoError, ReadError, RepoError, UpdateError, WriteError}
+import com.artemistechnica.lib.persistence.common.{DatabaseError, DeleteError, ErrorCode, MongoError, ReadError, RepoError, UpdateError, WriteError}
 import com.artemistechnica.lib.persistence.config.ConfigHelper
 import com.artemistechnica.lib.persistence.mongo.MongoRepo.MongoResponse
 import com.typesafe.config.{Config, ConfigFactory}
+import reactivemongo.akkastream.State
 import reactivemongo.api.{AsyncDriver, Cursor, DefaultDB}
-import reactivemongo.api.bson.{BSONArray, BSONDocument, BSONDocumentReader, BSONDocumentWriter, BSONValue}
+import reactivemongo.api.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.commands.{MultiBulkWriteResult, UpdateWriteResult, WriteResult}
 
@@ -28,59 +31,165 @@ trait MongoRepo extends MongoResponseGen {
 
   import cats.implicits.catsStdInstancesForFuture
 
-  private def getCollection(name: String)(implicit ec: ExecutionContext): MongoResponse[BSONCollection] = {
+  /**
+   * Get a reference to a Mongo collection. This can be used for more advanced interactions with Mongo; e.g. aggregate queries.
+   * @param name
+   * @param ec
+   * @return
+   */
+  def collection(name: String)(implicit ec: ExecutionContext): MongoResponse[BSONCollection] = {
     for {
       db  <- Mongo.db
       col <- (asFuture(db.collection[BSONCollection](name)), DatabaseError)
     } yield col
   }
 
-  def readOne[T](collection: String)(query: BSONDocument)(implicit ec: ExecutionContext, r: BSONDocumentReader[T]): MongoResponse[Option[T]] = {
+  /**
+   *
+   * @param collectionName
+   * @param query
+   * @param ec
+   * @param r
+   * @tparam T
+   * @return
+   */
+  def readOne[T](collectionName: String)(query: BSONDocument)(implicit ec: ExecutionContext, r: BSONDocumentReader[T]): MongoResponse[Option[T]] = {
     for {
-      col <- getCollection(collection)
+      col <- collection(collectionName)
       res   <- (col.find[BSONDocument, BSONDocument](query).one[T], ReadError)
     } yield res
   }
-  def readMany[T](collection: String)(query: BSONDocument, maxDocs: Int = -1)(implicit ec: ExecutionContext, r: BSONDocumentReader[T]): MongoResponse[List[T]] = {
+
+  /**
+   *
+   * @param collectionName
+   * @param query
+   * @param maxDocs
+   * @param ec
+   * @param r
+   * @tparam T
+   * @return
+   */
+  def readMany[T](collectionName: String)(query: BSONDocument, maxDocs: Int = -1)(implicit ec: ExecutionContext, r: BSONDocumentReader[T]): MongoResponse[List[T]] = {
     for {
-      col <- getCollection(collection)
+      col <- collection(collectionName)
       res <- (col.find[BSONDocument, BSONDocument](query).cursor[T]().collect[List](maxDocs, Cursor.FailOnError()), ReadError)
     } yield res
   }
-  def insert[T](collection: String, entity: T)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[WriteResult] = {
+
+  /**
+   *
+   * @param collectionName
+   * @param entity
+   * @param ec
+   * @param w
+   * @tparam T
+   * @return
+   */
+  def insert[T](collectionName: String, entity: T)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[WriteResult] = {
     for {
-      col <- getCollection(collection)
-      res <- (col.insert(false).one[T](entity), WriteError)
+      col <- collection(collectionName)
+      res <- (col.insert.one[T](entity), WriteError)
     } yield res
   }
-  def batchInsert[T](collection: String, entities: Iterable[T], orderedInserts: Boolean = false)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[MultiBulkWriteResult] = {
+
+  /**
+   *
+   * @param collectionName
+   * @param entities
+   * @param orderedInserts
+   * @param ec
+   * @param w
+   * @tparam T
+   * @return
+   */
+  def batchInsert[T](collectionName: String, entities: Iterable[T], orderedInserts: Boolean = false)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[MultiBulkWriteResult] = {
     for {
-      col <- getCollection(collection)
+      col <- collection(collectionName)
       res <- (col.insert(orderedInserts).many[T](entities), WriteError)
     } yield res
   }
-  def upsert[T](collection: String, entity: T)(query: BSONDocument)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[Option[T]] = {
+
+  /**
+   *
+   * @param collectionName
+   * @param entity
+   * @param query
+   * @param ec
+   * @param w
+   * @tparam T
+   * @return
+   */
+  def upsert[T](collectionName: String, entity: T)(query: BSONDocument)(implicit ec: ExecutionContext, w: BSONDocumentWriter[T]): MongoResponse[UpdateWriteResult] = {
     for {
-      col <- getCollection(collection)
-      res <- (col.update(false).one(query, entity, true, false), UpdateError)
+      col <- collection(collectionName)
+      res <- (col.update.one(query, entity, true, false), UpdateError)
     } yield res
   }
-  def updateOne(collection: String)(query: BSONDocument, updateStatement: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[UpdateWriteResult] = {
+
+  /**
+   *
+   * @param collectionName
+   * @param query
+   * @param updateStatement
+   * @param ec
+   * @return
+   */
+  def updateOne(collectionName: String)(query: BSONDocument, updateStatement: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[UpdateWriteResult] = {
     for {
-      col <- getCollection(collection)
-      res <- (col.update(false).one(query, updateStatement, false, false), UpdateError)
+      col <- collection(collectionName)
+      res <- (col.update.one(query, updateStatement, false, false), UpdateError)
     } yield res
   }
-  def updateMany(collection: String, ordered: Boolean = false)(query: BSONDocument, updateStatement: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[UpdateWriteResult] = {
+
+  /**
+   *
+   * @param collectionName
+   * @param ordered
+   * @param query
+   * @param updateStatement
+   * @param ec
+   * @return
+   */
+  def updateMany(collectionName: String, ordered: Boolean = false)(query: BSONDocument, updateStatement: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[UpdateWriteResult] = {
     for {
-      col <- getCollection(collection)
+      col <- collection(collectionName)
       res <- (col.update(ordered).one(query, updateStatement, false, true), UpdateError)
     } yield res
   }
-  // TODO - Implement me!
-//  def deleteOne(collection: String)(query: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[Unit]
-//  def deleteMany(collection: String)(query: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[Int]
-//  def stream[T](collection: String)(implicit ec: ExecutionContext, r: BSONDocumentReader[T]): MongoResponse[Option[T]]
+
+  /**
+   *
+   * @param collectionName
+   * @param query
+   * @param ec
+   * @return
+   */
+  def deleteOne(collectionName: String)(query: BSONDocument)(implicit ec: ExecutionContext): MongoResponse[WriteResult] = {
+    for {
+      col <- collection(collectionName)
+      res <- (col.delete.one(query), DeleteError)
+    } yield res
+  }
+
+  /**
+   *
+   * @param collectionName
+   * @param query
+   * @param maxDocs
+   * @param ec
+   * @param m
+   * @param r
+   * @tparam T
+   * @return
+   */
+  def stream[T](collectionName: String)(query: BSONDocument, maxDocs: Int = -1)(implicit ec: ExecutionContext, m: Materializer, r: BSONDocumentReader[T]): MongoResponse[Source[T, Future[State]]] = {
+    // For materializing an Akka Source
+    import reactivemongo.akkastream.cursorProducer
+    for {
+      col <- collection(collectionName)
+    } yield col.find[BSONDocument, BSONDocument](query).cursor[T]().documentSource()
+  }
 }
 
 object MongoRepo {

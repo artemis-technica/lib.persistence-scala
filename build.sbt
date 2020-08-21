@@ -26,17 +26,18 @@ val settings = Seq(
   ),
 
   libraryDependencies ++= Seq(
-    "org.typelevel"       %%  "cats-core"           % "2.0.0",
-    "org.typelevel"       %%  "cats-free"           % "2.0.0",
-    "com.typesafe.slick"  %%  "slick"               % "3.3.2",
-    "com.typesafe.slick"  %%  "slick-hikaricp"      % "3.3.2",
-    "com.github.tminglei" %%  "slick-pg"            % "0.18.0",
-    "com.github.tminglei" %%  "slick-pg_play-json"  % "0.18.0",
-    "com.typesafe.akka"   %%  "akka-stream"         % "2.6.0",
-    "org.postgresql"      %   "postgresql"          % "42.2.8",
-    "org.reactivemongo"   %%  "reactivemongo"       % "0.20.11",
-    "net.debasishg"       %%  "redisclient"         % "3.30",
-    "org.scalatest"       %%  "scalatest"           % "3.0.8"     % Test
+    "org.typelevel"       %%  "cats-core"                 % "2.0.0",
+    "org.typelevel"       %%  "cats-free"                 % "2.0.0",
+    "com.typesafe.slick"  %%  "slick"                     % "3.3.2",
+    "com.typesafe.slick"  %%  "slick-hikaricp"            % "3.3.2",
+    "com.github.tminglei" %%  "slick-pg"                  % "0.18.0",
+    "com.github.tminglei" %%  "slick-pg_play-json"        % "0.18.0",
+    "com.typesafe.akka"   %%  "akka-stream"               % "2.6.0",
+    "org.postgresql"      %   "postgresql"                % "42.2.8",
+    "org.reactivemongo"   %%  "reactivemongo"             % "0.20.11",
+    "org.reactivemongo"   %%  "reactivemongo-akkastream"  % "0.20.11",
+    "net.debasishg"       %%  "redisclient"               % "3.30",
+    "org.scalatest"       %%  "scalatest"                 % "3.0.8"     % Test
   )
 )
 
