@@ -14,6 +14,7 @@ import reactivemongo.api.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWri
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.commands.{MultiBulkWriteResult, UpdateWriteResult, WriteResult}
 
+import scala.collection.Factory
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -45,18 +46,22 @@ trait MongoRepo extends MongoResponseGen {
   }
 
   /**
+   * Query a collection for a single document.
+   * @param collectionName The collection name query against. The collection will be automatically created if it does not exist.
+   * @param query The query to perform against the collection.
+   * @param ec Implicitly scoped ExecutionContext
+   * @param r Implicitly scoped document reader to materialize the response, T.
+   * @tparam T The response type requested by the caller.
+   * @return MongoResponse[Option[T]]
    *
-   * @param collectionName
-   * @param query
-   * @param ec
-   * @param r
-   * @tparam T
-   * @return
+   * Example:
+   *
+   * val response: MongoResponse[Option[BSONDocument]] = readOne[BSONDocument]("exampleCollection")(BSONDocument("name" -> "Test Name"))
    */
   def readOne[T](collectionName: String)(query: BSONDocument)(implicit ec: ExecutionContext, r: BSONDocumentReader[T]): MongoResponse[Option[T]] = {
     for {
       col <- collection(collectionName)
-      res   <- (col.find[BSONDocument, BSONDocument](query).one[T], ReadError)
+      res <- (col.find[BSONDocument, BSONDocument](query).one[T], ReadError)
     } yield res
   }
 
@@ -67,13 +72,15 @@ trait MongoRepo extends MongoResponseGen {
    * @param maxDocs
    * @param ec
    * @param r
+   * @param cbf
    * @tparam T
+   * @tparam K
    * @return
    */
-  def readMany[T](collectionName: String)(query: BSONDocument, maxDocs: Int = -1)(implicit ec: ExecutionContext, r: BSONDocumentReader[T]): MongoResponse[List[T]] = {
+  def readMany[T, K[_]](collectionName: String)(query: BSONDocument, maxDocs: Int = -1)(implicit ec: ExecutionContext, r: BSONDocumentReader[T], cbf: Factory[T, K[T]]): MongoResponse[K[T]] = {
     for {
       col <- collection(collectionName)
-      res <- (col.find[BSONDocument, BSONDocument](query).cursor[T]().collect[List](maxDocs, Cursor.FailOnError()), ReadError)
+      res <- (col.find[BSONDocument, BSONDocument](query).cursor[T]().collect[K](maxDocs, Cursor.FailOnError()), ReadError)
     } yield res
   }
 

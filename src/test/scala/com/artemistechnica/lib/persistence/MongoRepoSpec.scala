@@ -24,7 +24,7 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
     whenReady(Mongo.db.map(_.drop()).value)(_ => println("Mongo database dropped"))
   }
 
-  "Profile" should "persist" in {
+  "MongoRepo" should "persist a single profile" in {
     val profile = Profile()
     val query   = BSONDocument("id" -> profile.id)
     val result  = for {
@@ -42,7 +42,7 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
     })
   }
 
-  "Profile" should "update only its updateDate" in {
+  "MongoRepo" should "update only a profile's updateDate" in {
     val profile     = Profile()
     val query       = BSONDocument("id" -> profile.id)
     val updateDate  = 1583884800000L
@@ -70,7 +70,32 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
     })
   }
 
-  "Profile" should "delete as expected" in {
+  "MongoRepo" should "delete one profile as expected" in {
+    val profile0  = Profile()
+    val profile1  = Profile()
+    val query0    = BSONDocument("id" -> profile0.id)
+    val query1    = BSONDocument("id" -> profile1.id)
+    val result    = for {
+      bwr <- MongoDB.batchInsert("profile", List(profile0, profile1))
+      p0  <- MongoDB.readOne[Profile]("profile")(query0)
+      wr  <- MongoDB.deleteOne("profile")(query0)
+      p1  <- MongoDB.readOne[Profile]("profile")(query0)
+      p2  <- MongoDB.readOne[Profile]("profile")(query1)
+    } yield (bwr, p0, wr, p1, p2)
 
+    whenReady(result.value)(_ match {
+      case Left(e)  => assert(false, s"Test failed: ${e.message}")
+      case Right((bwr, optP0, wr, optP1, optP2)) => {
+        assert(bwr.ok)
+        assert(bwr.totalN == 2)
+        assert(optP0.isDefined)
+        assert(optP0.get.id === profile0.id)
+        assert(wr.ok)
+        assert(wr.n == 1)
+        assert(optP1.isEmpty)
+        assert(optP2.isDefined)
+        assert(optP2.get.id === profile1.id)
+      }
+    })
   }
 }
