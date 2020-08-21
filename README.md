@@ -59,15 +59,14 @@ object Profile {
 
 val collection = "profile"
 val result0: MongoResponse[WriteResult] = MongoDB.insert(collection, profile)
-val result1: MongoResponse[Option[Profile]] = MongoDB.readOne[Profile]("profile")(BSONDocument("id" -> profile.id))
+val result1: MongoResponse[Option[Profile]] = MongoDB.readOne[Profile](collection)(BSONDocument("_id" -> profile.id))
 val result2: MongoResponse[List[Profile]] = MongoDB.readMany[Profile](collection)(BSONDocument("status" -> "active"))
-
 
 // Extends the trait or import the companion object's contents for implicit Tuple[T, ResponseError] to MongoResponse[T] transformations
 import com.artemistechnica.lib.persistence.mongo.MongoResponseGen._
 // Akka streams support
 val result3: MongoResponse[Seq[Profile]] = for {
-  src <- MongoDB.stream[Profile]("profile")(BSONDocument.empty)
+  src <- MongoDB.stream[Profile](collection)(BSONDocument.empty)
   res <- (src.runWith(Sink.seq), StreamError) // Implicitly transformed
 } yield res
 ```
