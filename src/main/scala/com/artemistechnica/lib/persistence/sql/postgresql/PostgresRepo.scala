@@ -32,7 +32,6 @@ trait PostgresRepo[A <: PostgresTableList] extends SqlRepo[A, Table, PostgresRes
 
   // Provides a database reference and error handling
   import PostgresRepo._
-
   import cats.implicits.catsStdInstancesForFuture
 
   def tables: A
@@ -74,10 +73,9 @@ trait PostgresRepo[A <: PostgresTableList] extends SqlRepo[A, Table, PostgresRes
 
 object PostgresRepo extends ConfigHelper {
 
-  import cats.implicits.catsStdInstancesForFuture
-
   import PostgresApiProfile.api._
   import PostgresErrorHandler._
+  import cats.implicits.catsStdInstancesForFuture
 
   type PostgresResponse[T] = RepoResponse[Future, PostgresError, T]
 

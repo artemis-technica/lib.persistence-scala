@@ -37,6 +37,7 @@ val settings = Seq(
     "org.reactivemongo"   %%  "reactivemongo"             % "0.20.11",
     "org.reactivemongo"   %%  "reactivemongo-akkastream"  % "0.20.11",
     "net.debasishg"       %%  "redisclient"               % "3.30",
+    "org.scala-stm"       %%  "scala-stm"                 % "0.9.1",
     "org.scalatest"       %%  "scalatest"                 % "3.0.8"     % Test
   )
 )

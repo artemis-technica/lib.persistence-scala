@@ -3,6 +3,7 @@ package com.artemistechnica.lib.persistence.mongo
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import cats.data.EitherT
+import cats.implicits.catsStdInstancesForFuture
 import com.artemistechnica.lib.persistence.common.CommonResponse.RepoResponse
 import com.artemistechnica.lib.persistence.common._
 import com.artemistechnica.lib.persistence.config.ConfigHelper
@@ -15,6 +16,7 @@ import reactivemongo.api.commands.{MultiBulkWriteResult, UpdateWriteResult, Writ
 import reactivemongo.api.{AsyncDriver, Cursor, DefaultDB}
 
 import scala.collection.Factory
+import scala.concurrent.stm.{Ref, atomic}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -238,9 +240,10 @@ object MongoRepo {
 }
 
 object Mongo extends MongoResponseGen {
-  private val driver  = AsyncDriver()
-  private val conn    = driver.connect(s"mongodb://${MongoConfig.instance.host}:${MongoConfig.instance.port}")
-  def db(implicit ec: ExecutionContext): MongoResponse[DefaultDB] = (conn.flatMap(_.database(MongoConfig.instance.dbName)), DatabaseError)
+  def db(implicit ec: ExecutionContext): MongoResponse[DefaultDB] = for {
+    config    <- MongoConfig.instance
+    database  <- (config.conn.flatMap(_.database(config.dbName)), DatabaseError)
+  } yield database
 }
 
 // Extends the trait or import the companion object's contents for implicit Tuple[T, ResponseError] to MongoResponse[T] transformations
@@ -263,12 +266,45 @@ object MongoErrorHandler {
   }
 }
 
-// TODO - Expand
-case class MongoConfig(host: String, port: Int, dbName: String)
-object MongoConfig extends ConfigHelper {
+// TODO - Expand configuration options
+// TODO - Evaluate driver and connection references. This puts a requirements on MongoConfig to always be a singleton
+case class MongoConfig(host: String, port: Int, dbName: String) {
+  lazy val driver = AsyncDriver()
+  lazy val conn   = driver.connect(s"mongodb://$host:$port")
+}
+object MongoConfig extends ConfigHelper with MongoResponseGen {
 
-  // Singleton app configuration instance
-  lazy val instance = MongoConfig(ConfigFactory.load)
+  private lazy val config     = ConfigFactory.load
+  private lazy val configRef  = Ref[Option[MongoConfig]](None)
+
+  /**
+   * Used to retrieve an instance of a [[MongoConfig]]. This method will instantiate a configuration exactly once.
+   * @param ec Implicitly scoped ExecutionContext
+   * @return MongoResponse[MongoConfig]
+   */
+  def instance(implicit ec: ExecutionContext): MongoResponse[MongoConfig] = {
+    // Attempt to build a mongo configuration from application config. Throw exception if config path is not found.
+    def tryConfigConstruct: MongoResponse[MongoConfig] = {
+      for {
+        c <- (Future(if (config.hasPathOrNull("db.mongo")) config else throw new Exception("No database configuration found at path db.mongo")), GeneralError)
+      } yield {
+        MongoConfig(c)
+      }
+    }
+    // Try constructing a mongo configuration and if successful atomically update the configRef's internal reference
+    // and return the new mongo configuration.
+    def tryConfigUpdate: MongoResponse[Option[MongoConfig]] = {
+      for {
+        c <- tryConfigConstruct
+      } yield atomic { implicit txs => configRef.transformAndGet(_ => Some(c)) }
+    }
+    // Atomic transaction will init a MongoConfig exactly once and reuse the config instance going forward.
+    atomic { implicit txs =>
+      for {
+        config <- configRef().fold(tryConfigUpdate)(c => (asFuture(Option(c)), GeneralError).toResponse)
+      } yield config.get
+    }
+  }
 
   def apply(c: Config): MongoConfig = {
     val h = c.getOrThrow[String]("db.mongo.host")
