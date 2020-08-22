@@ -60,5 +60,5 @@ trait SqlRepo[A <: SqlTableList, K[_], R[_]] {
    * @tparam T
    * @return
    */
-  def stream[T](buffer: Boolean, query: A => StreamingDBIO[_, T])(implicit ec: ExecutionContext): DatabasePublisher[T]
+  def stream[T](buffer: Boolean, query: A => StreamingDBIO[_, T])(implicit ec: ExecutionContext): R[DatabasePublisher[T]]
 }
