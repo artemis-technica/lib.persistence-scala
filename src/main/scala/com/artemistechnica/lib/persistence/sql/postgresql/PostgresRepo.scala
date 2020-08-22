@@ -87,9 +87,10 @@ object PostgresRepo extends ConfigHelper {
    * @param ec Implicitly scoped ExecutionContext
    * @return The Postgres DB reference
    */
+  // TODO - Instantiate a DatabaseDef exactly once!
   def resolveDB(implicit ec: ExecutionContext): EitherT[Future, PostgresError, postgresql.PostgresApiProfile.backend.DatabaseDef] = {
     for {
-      c <- (Future.successful(if (config.hasPathOrNull("db.postgres")) config else throw new Exception("No database configuration found at path db.postgres")), GeneralError)
+      c <- (Future(if (config.hasPathOrNull("db.postgres")) config else throw new Exception("No database configuration found at path db.postgres")), GeneralError)
     } yield Database.forConfig("db.postgres", c)
   }
 

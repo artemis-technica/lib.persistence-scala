@@ -240,6 +240,11 @@ object MongoRepo {
 }
 
 object Mongo extends MongoResponseGen {
+  /**
+   * Primary method for resolving a reference to a mongo database
+   * @param ec Implicitly scoped ExecutionContext
+   * @return MongoResponse[DefaultDB]
+   */
   def db(implicit ec: ExecutionContext): MongoResponse[DefaultDB] = for {
     config    <- MongoConfig.instance
     database  <- (config.conn.flatMap(_.database(config.dbName)), DatabaseError)
