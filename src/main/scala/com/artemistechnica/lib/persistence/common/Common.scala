@@ -3,6 +3,7 @@ package com.artemistechnica.lib.persistence.common
 import java.sql.Timestamp
 
 import cats.data.EitherT
+import com.typesafe.config.{Config, ConfigFactory}
 import play.api.libs.json.{Format, JsValue, Json}
 import reactivemongo.api.bson.{BSONHandler, BSONLong, BSONValue}
 
@@ -36,5 +37,20 @@ object TimestampImplicits {
 trait JsonToA {
   def jsonToA[A](json: JsValue)(implicit f: Format[A]): Option[A] = Json.fromJson(json).asOpt
   def optJsonToA[A](optJson: Option[JsValue])(implicit f: Format[A]): Option[A] = optJson.flatMap(Json.fromJson(_).asOpt)
+}
+
+/**
+ * Provides alternative ways to provide an application's configuration
+ */
+sealed trait ConfigProvider {
+  def provide(): Config
+}
+
+/**
+ * Simple
+ */
+trait SimpleConfigProvider extends ConfigProvider {
+  implicit lazy val c = ConfigFactory.load
+  override def provide(): Config = c
 }
 

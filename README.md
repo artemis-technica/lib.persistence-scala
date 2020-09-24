@@ -42,10 +42,10 @@ TODO
 
 MongoDB is fairly straight-forward to interface with.
 
-1. Extends the `com.artemistechnica.lib.persistence.mongo.MongoRepo` trait. This gives basic functionality for interacting with Mongo database. This will automatically find the `application.conf` on the classpath and interpret its contents.
+1. Extends the `com.artemistechnica.lib.persistence.mongo.MongoRepo` trait and mix in a `com.artemistechnica.lib.persistence.common.ConfigProvider`. This gives basic functionality for interacting with Mongo database. For convenience there is a `SimpleConfigProvider` that implements the `ConfigProvider` trait and wraps a call to `ConfigFactory.load` to provide the configuration.
 ```scala
-// Just extend the MongoRepo trait
-object MongoDB extends MongoRepo
+// Just extend the MongoRepo trait mixing in a ConfigProvider
+object MongoDB extends MongoRepo with SimpleConfigProvider
 // Simple example data
 case class Profile(id: String, createDate: Long, updateDate: Long, status: String)
 object Profile {

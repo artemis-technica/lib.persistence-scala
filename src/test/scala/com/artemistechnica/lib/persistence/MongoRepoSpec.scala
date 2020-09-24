@@ -3,7 +3,7 @@ package com.artemistechnica.lib.persistence
 import akka.stream.scaladsl.Sink
 import akka.stream.{ActorMaterializer, Materializer}
 import com.artemistechnica.lib.persistence.common.{StreamError, WriteError}
-import com.artemistechnica.lib.persistence.mongo.{Mongo, MongoResponseGen}
+import com.artemistechnica.lib.persistence.mongo.MongoResponseGen
 import fixtures.{MongoDB, Profile}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -25,11 +25,11 @@ class MongoRepoSpec extends FlatSpec with Matchers with ScalaFutures with Before
 
 
   override protected def beforeAll(): Unit = {
-    whenReady(Mongo.db.map(_.drop()).value)(_ => ())
+    whenReady(MongoDB.drop.value)(_ => ())
   }
 
   override protected def afterAll(): Unit = {
-    whenReady(Mongo.db.map(_.drop()).value)(_ => ())
+    whenReady(MongoDB.drop.value)(_ => ())
   }
 
   "MongoRepo" should "persist a single profile" in {

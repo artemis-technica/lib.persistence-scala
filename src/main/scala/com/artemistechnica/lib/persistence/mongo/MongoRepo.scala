@@ -8,7 +8,7 @@ import com.artemistechnica.lib.persistence.common.CommonResponse.RepoResponse
 import com.artemistechnica.lib.persistence.common._
 import com.artemistechnica.lib.persistence.config.ConfigHelper
 import com.artemistechnica.lib.persistence.mongo.MongoRepo.MongoResponse
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
 import reactivemongo.akkastream.State
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
@@ -20,11 +20,13 @@ import scala.concurrent.stm.{Ref, atomic}
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
- * Primary trait to interface with a Mongo database.
+ * Primary trait to interface with a Mongo database. Requires a config provider to be mixed in
  */
-trait MongoRepo extends MongoResponseGen {
+trait MongoRepo extends MongoResponseGen { configProvider: ConfigProvider =>
 
   import cats.implicits.catsStdInstancesForFuture
+
+  implicit lazy private val config = configProvider.provide()
 
   /**
    * Get a reference to a Mongo collection. This can be used for more advanced interactions with Mongo; e.g. aggregate queries.
@@ -245,7 +247,7 @@ object Mongo extends MongoResponseGen {
    * @param ec Implicitly scoped ExecutionContext
    * @return MongoResponse[DefaultDB]
    */
-  def db(implicit ec: ExecutionContext): MongoResponse[DefaultDB] = for {
+  def db(implicit config: Config, ec: ExecutionContext): MongoResponse[DefaultDB] = for {
     config    <- MongoConfig.instance
     database  <- (config.conn.flatMap(_.database(config.dbName)), DatabaseError)
   } yield database
@@ -279,15 +281,17 @@ case class MongoConfig(host: String, port: Int, dbName: String) {
 }
 object MongoConfig extends ConfigHelper with MongoResponseGen {
 
-  private lazy val config     = ConfigFactory.load
+//  private lazy val config     = ConfigFactory.load
   private lazy val configRef  = Ref[Option[MongoConfig]](None)
+
+//  private def config = configProvider.provide()
 
   /**
    * Used to retrieve an instance of a [[MongoConfig]]. This method will instantiate a configuration exactly once.
    * @param ec Implicitly scoped ExecutionContext
    * @return MongoResponse[MongoConfig]
    */
-  def instance(implicit ec: ExecutionContext): MongoResponse[MongoConfig] = {
+  def instance(implicit config: Config, ec: ExecutionContext): MongoResponse[MongoConfig] = {
     // Attempt to build a mongo configuration from application config. Throw exception if config path is not found.
     def tryConfigConstruct: MongoResponse[MongoConfig] = {
       for {
